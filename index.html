@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incremental Grid Search Optimization (IGSO) - Interactive Demo</title>
+  <style>
+    /* Reset & CSS Custom Properties */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-main: #0b0f19;
+      --bg-panel: #111827;
+      --bg-card: #1f2937;
+      --bg-card-hover: #374151;
+      --border-color: #374151;
+      --border-subtle: #1f2937;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-subtle: #6b7280;
+      --accent-blue: #3b82f6;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --accent-rose: #f43f5e;
+      --accent-yellow: #facc15;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 1.5rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 768px) {
+      header {
+        flex-direction: row;
+        align-items: center;
+      }
+    }
+
+    .badge-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .pill-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      display: inline-block;
+    }
+
+    .pill-purple {
+      background: rgba(139, 92, 246, 0.15);
+      color: #c4b5fd;
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .pill-green {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    .status-area {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.5rem;
+      font-family: monospace;
+      font-size: 0.8rem;
+    }
+
+    .pulse-dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    /* Common Card Styling */
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .card-title {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .formula-tag {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #93c5fd;
+      text-transform: none;
+    }
+
+    /* =========================================
+       SECTION 1: TOP ROW (2 Columns, Equal Size)
+       ========================================= */
+    .section-top {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 768px) {
+      .section-top {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Objective Function Buttons */
+    .fn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.65rem;
+      height: 100%;
+    }
+
+    .fn-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      text-align: left;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 0.2rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .fn-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: #6366f1;
+      color: #e0e7ff;
+    }
+
+    .fn-btn .fn-name {
+      font-weight: 700;
+      font-size: 0.825rem;
+      color: var(--text-main);
+    }
+
+    .fn-btn .fn-sub {
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+    }
+
+    /* Telemetry Grid in Top Row */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .telemetry-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-box {
+      background: #090d16;
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.65rem;
+    }
+
+    .stat-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .stat-val {
+      font-family: monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .val-white { color: #f9fafb; }
+    .val-amber { color: #fcd34d; }
+    .val-blue  { color: #7dd3fc; }
+    .val-purple{ color: #d8b4fe; }
+
+    .action-badge {
+      font-size: 0.62rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      font-weight: 700;
+      font-family: monospace;
+      margin-left: 0.25rem;
+      vertical-align: middle;
+    }
+
+    .badge-expand {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-shrink {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .badge-init {
+      background: var(--bg-card);
+      color: var(--text-subtle);
+      border: 1px solid var(--border-color);
+    }
+
+    .delta-bar {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* =========================================
+       SECTION 2: MIDDLE ROW (2 Columns: Graph vs Params)
+       ========================================= */
+    .section-middle {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 1024px) {
+      .section-middle {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    /* Graph Column (Left) */
+    .graph-column {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .canvas-panel {
+      background: #060911;
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .canvas-legend {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      padding: 0 0.25rem;
+    }
+
+    .legend-items {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 3px;
+      vertical-align: middle;
+    }
+
+    .dot-blue { background: var(--accent-blue); }
+    .dot-green { background: var(--accent-emerald); }
+    .dot-yellow {
+      background: transparent;
+      border: 2px solid var(--accent-yellow);
+      box-sizing: border-box;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-width: 520px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 0.5rem;
+      border: 1px solid #1e293b;
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+
+    .step-overlay {
+      position: absolute;
+      bottom: 0.75rem;
+      left: 0.75rem;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border-color);
+      padding: 0.3rem 0.6rem;
+      border-radius: 0.4rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .step-overlay span {
+      color: #93c5fd;
+      font-weight: 700;
+    }
+
+    .controls-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.825rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .btn-primary {
+      background: #4f46e5;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: #4338ca;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    input[type="range"] {
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
+
+    /* Parameters Column (Right) */
+    .params-column {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .params-column .card {
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .param-group {
+      background: #090d16;
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .param-group-header {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #93c5fd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .param-group-desc {
+      font-size: 0.68rem;
+      color: var(--text-subtle);
+      line-height: 1.3;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .grid-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.4rem;
+    }
+
+    .num-input-wrap label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+
+    .num-input-wrap input {
+      width: 100%;
+      background: #111827;
+      border: 1px solid var(--border-color);
+      border-radius: 0.35rem;
+      padding: 0.35rem 0.5rem;
+      color: var(--text-main);
+      font-family: monospace;
+      font-size: 0.8rem;
+      transition: border-color 0.15s ease;
+    }
+
+    .num-input-wrap input:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+
+    .slider-with-number {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slider-with-number input[type="range"] {
+      flex: 1;
+    }
+
+    .slider-with-number input[type="number"] {
+      width: 4.2rem;
+      background: #111827;
+      border: 1px solid var(--border-color);
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.4rem;
+      color: var(--text-main);
+      font-family: monospace;
+      font-size: 0.78rem;
+      text-align: right;
+    }
+
+    .btn-reset-params {
+      background: transparent;
+      border: 1px dashed var(--border-color);
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      padding: 0.45rem;
+      border-radius: 0.4rem;
+      text-align: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .btn-reset-params:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-style: solid;
+    }
+
+    /* =========================================
+       SECTION 3: BOTTOM FULL-WIDTH (1 Column)
+       ========================================= */
+    .section-bottom {
+      width: 100%;
+    }
+
+    .info-footer {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+
+    .info-footer h3 {
+      font-size: 0.875rem;
+      font-weight: 700;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .concept-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+
+    @media (min-width: 640px) {
+      .concept-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .concept-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .concept-card {
+      background: #090d16;
+      border: 1px solid var(--border-subtle);
+      border-radius: 0.5rem;
+      padding: 0.75rem 0.85rem;
+      font-size: 0.75rem;
+    }
+
+    .concept-card strong {
+      display: block;
+      margin-bottom: 0.25rem;
+      color: #93c5fd;
+    }
+
+    .concept-card p {
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Top Header -->
+    <header>
+      <div>
+        <div class="badge-group">
+          <span class="pill-badge pill-purple">Algorithm Demo</span>
+          <span class="pill-badge pill-green">Derivative-Free Optimization</span>
+        </div>
+        <h1>Incremental Grid Search Optimization (IGSO)</h1>
+        <p>Interactive simulation of adaptive neighborhood range search in continuous space.</p>
+      </div>
+
+      <div class="status-area">
+        <div class="status-indicator">
+          <span class="pulse-dot"></span>
+          <span id="statusText">Ready</span>
+        </div>
+        <button id="resetBtn" class="btn-secondary">↺ Reset</button>
+      </div>
+    </header>
+
+    <!-- SECTION 1 (TOP): 2 EQUAL-SIZED COLUMNS -->
+    <section class="section-top">
+      
+      <!-- Top Col 1: Objective Function -->
+      <div class="card">
+        <div class="card-title">
+          <span>Objective Function</span>
+          <span class="formula-tag" id="currentFormula">f(x,y) = (x-2)² + (y-3)²</span>
+        </div>
+        <div class="fn-grid">
+          <button class="fn-btn active" data-fn="quadratic">
+            <span class="fn-name">1. Paraboloid (Smooth)</span>
+            <span class="fn-sub">Min at (2.0, 3.0)</span>
+          </button>
+          <button class="fn-btn" data-fn="cusp">
+            <span class="fn-name">2. Sharp Cusp (Corner)</span>
+            <span class="fn-sub">|x-2| + |y-3| (Non-diff)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Top Col 2: Live Search State (Telemetry) -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Search State</span>
+          <span id="telActionBadge" class="action-badge badge-init">INIT</span>
+        </div>
+        
+        <div class="telemetry-grid">
+          <div class="stat-box">
+            <span class="stat-label">Iteration</span>
+            <span id="telIter" class="stat-val val-white">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">f(x, y)</span>
+            <span id="telF" class="stat-val val-amber">13.0000</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Position (x, y)</span>
+            <span id="telPos" class="stat-val val-blue">(5.00, 5.00)</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Step (s)</span>
+            <span id="telStep" class="stat-val val-purple">0.500</span>
+          </div>
+        </div>
+
+        <div class="delta-bar">
+          <div>
+            <span style="color: var(--text-muted);">Improvement Δf: </span>
+            <span id="telDelta" style="font-family: monospace; font-weight: 700; color: #f9fafb;">0.0000</span>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Decision Rule: </span>
+            <span id="telCondition" style="font-family: monospace; color: #a5b4fc;">Δf vs Threshold T (0.10)</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SECTION 2 (MIDDLE): 2 COLUMNS (LEFT: GRAPH, RIGHT: PARAMS) -->
+    <section class="section-middle">
+      
+      <!-- Middle Col 1 (Left): Graph & Controls -->
+      <div class="graph-column">
+        <div class="canvas-panel">
+          <div class="canvas-legend">
+            <div class="legend-items">
+              <span><span class="dot dot-blue"></span>Main Node</span>
+              <span><span class="dot dot-green"></span>Neighbors</span>
+              <span><span class="dot dot-yellow"></span>Best Step</span>
+            </div>
+            <span>Click canvas to set start</span>
+          </div>
+
+          <div class="canvas-wrapper">
+            <canvas id="optCanvas" width="520" height="520"></canvas>
+            <div class="step-overlay">
+              Step size: <span id="overlayStep">0.500</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls directly underneath canvas -->
+        <div class="controls-panel">
+          <div class="btn-group">
+            <button id="stepBtn" class="btn-secondary"><span>▶|</span> Step</button>
+            <button id="playBtn" class="btn-primary"><span id="playIcon">▶</span> <span id="playText">Auto Play</span></button>
+          </div>
+
+          <div class="speed-control">
+            <label for="speedSlider">Speed:</label>
+            <input id="speedSlider" type="range" min="100" max="1000" step="50" value="400">
+            <span id="speedVal" style="font-family: monospace;">400ms</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Col 2 (Right): All Algorithm Parameters -->
+      <div class="params-column">
+        <div class="card">
+          <div class="card-title">
+            <span>Algorithm Parameters</span>
+            <span style="font-size: 0.68rem; text-transform: none; color: var(--text-subtle);">All user-tunable</span>
+          </div>
+
+          <!-- 1. Starting Coordinates -->
+          <div class="param-group">
+            <div class="param-group-header">
+              <span>Initial Position (x₀, y₀)</span>
+              <span style="font-size: 0.65rem; color: var(--text-subtle);">or click canvas</span>
+            </div>
+            <div class="grid-2col">
+              <div class="num-input-wrap">
+                <label for="startXInput">Start X (x₀)</label>
+                <input id="startXInput" type="number" step="0.1" min="-0.5" max="6.5" value="5.0">
+              </div>
+              <div class="num-input-wrap">
+                <label for="startYInput">Start Y (y₀)</label>
+                <input id="startYInput" type="number" step="0.1" min="-0.5" max="6.5" value="5.0">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Decision Threshold T -->
+          <div class="param-group">
+            <div class="param-group-header">
+              <span>Threshold (T)</span>
+              <span id="tDisplayVal" style="font-family: monospace; color: #c4b5fd;">0.10</span>
+            </div>
+            <div class="slider-with-number">
+              <input id="tSlider" type="range" min="0.01" max="2.00" step="0.01" value="0.10">
+              <input id="tNumberInput" type="number" min="0.001" max="10.0" step="0.01" value="0.10">
+            </div>
+            <span class="param-group-desc">Controls exploration vs exploitation: if Δf &gt; T step expands; otherwise shrinks.</span>
+          </div>
+
+          <!-- 3. Adaptation Multipliers -->
+          <div class="param-group">
+            <div class="param-group-header">
+              <span>Adaptation Factors</span>
+              <span style="font-size: 0.65rem; color: var(--text-subtle);">Slide 6</span>
+            </div>
+            <div class="grid-2col">
+              <div class="num-input-wrap">
+                <label for="expandInput">Expand Multiplier (×)</label>
+                <input id="expandInput" type="number" step="0.05" min="1.01" max="3.0" value="1.20">
+              </div>
+              <div class="num-input-wrap">
+                <label for="shrinkInput">Shrink Multiplier (×)</label>
+                <input id="shrinkInput" type="number" step="0.05" min="0.1" max="0.99" value="0.80">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Step Size Limits -->
+          <div class="param-group">
+            <div class="param-group-header">
+              <span>Step Size Limits</span>
+              <span style="font-size: 0.65rem; color: var(--text-subtle);">Slide 5</span>
+            </div>
+            <div class="grid-3col">
+              <div class="num-input-wrap">
+                <label for="initStepInput">Initial (s₀)</label>
+                <input id="initStepInput" type="number" step="0.05" min="0.05" max="3.0" value="0.50">
+              </div>
+              <div class="num-input-wrap">
+                <label for="minStepInput">Min (s_min)</label>
+                <input id="minStepInput" type="number" step="0.005" min="0.001" max="0.1" value="0.01">
+              </div>
+              <div class="num-input-wrap">
+                <label for="maxStepInput">Max (s_max)</label>
+                <input id="maxStepInput" type="number" step="0.5" min="0.5" max="10.0" value="3.00">
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Max Iterations & Tolerance -->
+          <div class="param-group">
+            <div class="param-group-header">
+              <span>Termination Limits</span>
+            </div>
+            <div class="grid-2col">
+              <div class="num-input-wrap">
+                <label for="maxIterInput">Max Iterations</label>
+                <input id="maxIterInput" type="number" min="10" max="200" step="5" value="60">
+              </div>
+              <div class="num-input-wrap">
+                <label for="tolInput">Target Tolerance (ε)</label>
+                <input id="tolInput" type="number" min="0.000001" max="0.1" step="0.0001" value="0.0001">
+              </div>
+            </div>
+          </div>
+
+          <button id="resetDefaultsBtn" class="btn-reset-params">↺ Restore Original Paper Defaults</button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- SECTION 3 (BOTTOM): 1 FULL-WIDTH COLUMN -->
+    <section class="section-bottom">
+      <div class="info-footer">
+        <h3><span>●</span> How IGSO Works Under the Hood</h3>
+        <div class="concept-grid">
+          <div class="concept-card">
+            <strong>1. Grid Neighbors (3ᵈ - 1)</strong>
+            <p>Samples 3ᵈ - 1 surrounding candidate points at offset ±s across all coordinate axes (e.g. 8 in 2D, 80 in 4D).</p>
+          </div>
+          <div class="concept-card">
+            <strong>2. Best Candidate</strong>
+            <p>Identifies neighbor with lowest f(x, y). If lower than current node, node jumps there.</p>
+          </div>
+          <div class="concept-card">
+            <strong>3. Step Adaptation</strong>
+            <p>Expands step (×expand) when Δf &gt; T. Contracts (×shrink) when Δf ≤ T to zero in on minimum.</p>
+          </div>
+          <div class="concept-card">
+            <strong>4. Derivative-Free</strong>
+            <p>Requires no gradients; naturally navigates non-differentiable cusps and sharp corners.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // State and Configuration
+    const canvas = document.getElementById('optCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const functions = {
+      quadratic: {
+        name: "f(x,y) = (x-2)² + (y-3)²",
+        fn: (x, y) => (x - 2)**2 + (y - 3)**2,
+        optimum: [2, 3],
+        domain: [-1, 7, -1, 7]
+      },
+      cusp: {
+        name: "f(x,y) = |x-2| + |y-3|",
+        fn: (x, y) => Math.abs(x - 2) + Math.abs(y - 3),
+        optimum: [2, 3],
+        domain: [-1, 7, -1, 7]
+      }
+    };
+
+    // Paper default hyperparameters
+    const DEFAULTS = {
+      startX: 5.0,
+      startY: 5.0,
+      threshold: 0.10,
+      initialStep: 0.50,
+      minStep: 0.01,
+      maxStep: 3.00,
+      expandMultiplier: 1.20,
+      shrinkMultiplier: 0.80,
+      maxIterations: 60,
+      tolerance: 0.0001
+    };
+
+    let currentFnKey = 'quadratic';
+    let startX = DEFAULTS.startX;
+    let startY = DEFAULTS.startY;
+    let threshold = DEFAULTS.threshold;
+    let initialStep = DEFAULTS.initialStep;
+    let minStep = DEFAULTS.minStep;
+    let maxStep = DEFAULTS.maxStep;
+    let expandMultiplier = DEFAULTS.expandMultiplier;
+    let shrinkMultiplier = DEFAULTS.shrinkMultiplier;
+    let maxIterations = DEFAULTS.maxIterations;
+    let tolerance = DEFAULTS.tolerance;
+
+    let state = {
+      x: startX,
+      y: startY,
+      step: initialStep,
+      iter: 0,
+      f: 0,
+      deltaF: 0,
+      lastAction: 'init',
+      history: [],
+      currentNeighbors: [],
+      bestNeighbor: null,
+      running: false,
+      timer: null
+    };
+
+    function toCanvas(x, y) {
+      const [xmin, xmax, ymin, ymax] = functions[currentFnKey].domain;
+      const cx = ((x - xmin) / (xmax - xmin)) * canvas.width;
+      const cy = canvas.height - ((y - ymin) / (ymax - ymin)) * canvas.height;
+      return [cx, cy];
+    }
+
+    function fromCanvas(cx, cy) {
+      const [xmin, xmax, ymin, ymax] = functions[currentFnKey].domain;
+      const x = xmin + (cx / canvas.width) * (xmax - xmin);
+      const y = ymin + ((canvas.height - cy) / canvas.height) * (ymax - ymin);
+      return [x, y];
+    }
+
+    // Precomputed heatmap background
+    let bgCanvas = document.createElement('canvas');
+    bgCanvas.width = 270;
+    bgCanvas.height = 270;
+    let bgCtx = bgCanvas.getContext('2d');
+
+    function renderBackground() {
+      const imgData = bgCtx.createImageData(bgCanvas.width, bgCanvas.height);
+      const f = functions[currentFnKey].fn;
+      const [xmin, xmax, ymin, ymax] = functions[currentFnKey].domain;
+      
+      let maxVal = 0;
+      for (let px = 0; px < bgCanvas.width; px += 10) {
+        for (let py = 0; py < bgCanvas.height; py += 10) {
+          let x = xmin + (px / bgCanvas.width) * (xmax - xmin);
+          let y = ymin + ((bgCanvas.height - py) / bgCanvas.height) * (ymax - ymin);
+          let val = f(x, y);
+          if (val > maxVal) maxVal = val;
+        }
+      }
+      if (maxVal === 0) maxVal = 1;
+
+      let idx = 0;
+      for (let py = 0; py < bgCanvas.height; py++) {
+        let y = ymin + ((bgCanvas.height - py) / bgCanvas.height) * (ymax - ymin);
+        for (let px = 0; px < bgCanvas.width; px++) {
+          let x = xmin + (px / bgCanvas.width) * (xmax - xmin);
+          let val = f(x, y);
+          let norm = Math.min(1, Math.max(0, Math.sqrt(val / maxVal)));
+          
+          let band = Math.sin(norm * 25);
+          let contourAlpha = Math.abs(band) < 0.15 ? 0.35 : 0.0;
+
+          let r = Math.round(15 + norm * 45 + contourAlpha * 80);
+          let g = Math.round(23 + norm * 70 + contourAlpha * 90);
+          let b = Math.round(42 + norm * 110 + contourAlpha * 120);
+
+          imgData.data[idx] = r;
+          imgData.data[idx + 1] = g;
+          imgData.data[idx + 2] = b;
+          imgData.data[idx + 3] = 255;
+          idx += 4;
+        }
+      }
+      bgCtx.putImageData(imgData, 0, 0);
+    }
+
+    function stepIGSO() {
+      if (state.step <= minStep) {
+        stopAutoPlay();
+        updateUI();
+        document.getElementById('statusText').innerText = 'Converged (Step ≤ min)';
+        return;
+      }
+      if (state.iter >= maxIterations) {
+        stopAutoPlay();
+        updateUI();
+        document.getElementById('statusText').innerText = 'Max Iterations Reached';
+        return;
+      }
+
+      const f = functions[currentFnKey].fn;
+      const currentF = f(state.x, state.y);
+      const step = state.step;
+
+      const xi = [state.x - step, state.x, state.x + step];
+      const yi = [state.y - step, state.y, state.y + step];
+
+      let bestX = state.x;
+      let bestY = state.y;
+      let bestF = currentF;
+      let neighbors = [];
+
+      for (let i of xi) {
+        for (let j of yi) {
+          const val = f(i, j);
+          const isCenter = (Math.abs(i - state.x) < 1e-9 && Math.abs(j - state.y) < 1e-9);
+          neighbors.push({ x: i, y: j, f: val, center: isCenter });
+          if (val < bestF) {
+            bestF = val;
+            bestX = i;
+            bestY = j;
+          }
+        }
+      }
+
+      const deltaF = Math.abs(currentF - bestF);
+      let action = '';
+      let nextStep = step;
+
+      if (deltaF > threshold) {
+        nextStep = Math.min(step * expandMultiplier, maxStep);
+        action = 'expand';
+      } else {
+        nextStep = Math.max(step * shrinkMultiplier, minStep);
+        action = 'shrink';
+      }
+
+      state.currentNeighbors = neighbors;
+      state.bestNeighbor = { x: bestX, y: bestY, f: bestF };
+      state.history.push({ x: state.x, y: state.y, f: currentF, step: state.step });
+
+      state.x = bestX;
+      state.y = bestY;
+      state.f = bestF;
+      state.deltaF = deltaF;
+      state.lastAction = action;
+      state.step = nextStep;
+      state.iter += 1;
+
+      drawScene();
+      updateUI();
+
+      if (state.step <= minStep || bestF <= tolerance) {
+        stopAutoPlay();
+        document.getElementById('statusText').innerText = 'Finished (Min reached)';
+      }
+    }
+
+    function resetSearch() {
+      stopAutoPlay();
+      const f = functions[currentFnKey].fn;
+      state.x = startX;
+      state.y = startY;
+      state.step = initialStep;
+      state.iter = 0;
+      state.f = f(startX, startY);
+      state.deltaF = 0;
+      state.lastAction = 'init';
+      state.history = [];
+      state.currentNeighbors = [];
+      state.bestNeighbor = null;
+
+      computeInitialNeighbors();
+      drawScene();
+      updateUI();
+      document.getElementById('statusText').innerText = 'Ready';
+    }
+
+    function computeInitialNeighbors() {
+      const f = functions[currentFnKey].fn;
+      const step = state.step;
+      const xi = [state.x - step, state.x, state.x + step];
+      const yi = [state.y - step, state.y, state.y + step];
+      let bestF = state.f;
+      let bestX = state.x;
+      let bestY = state.y;
+      state.currentNeighbors = [];
+
+      for (let i of xi) {
+        for (let j of yi) {
+          const val = f(i, j);
+          const isCenter = (Math.abs(i - state.x) < 1e-9 && Math.abs(j - state.y) < 1e-9);
+          state.currentNeighbors.push({ x: i, y: j, f: val, center: isCenter });
+          if (val < bestF) {
+            bestF = val;
+            bestX = i;
+            bestY = j;
+          }
+        }
+      }
+      state.bestNeighbor = { x: bestX, y: bestY, f: bestF };
+    }
+
+    function drawScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(bgCanvas, 0, 0, canvas.width, canvas.height);
+
+      drawAxes();
+
+      // Optimum marker
+      const opt = functions[currentFnKey].optimum;
+      const [optCx, optCy] = toCanvas(opt[0], opt[1]);
+      ctx.beginPath();
+      ctx.arc(optCx, optCy, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Trajectory Trail
+      if (state.history.length > 0) {
+        ctx.beginPath();
+        const [h0x, h0y] = toCanvas(state.history[0].x, state.history[0].y);
+        ctx.moveTo(h0x, h0y);
+        for (let h of state.history) {
+          const [hx, hy] = toCanvas(h.x, h.y);
+          ctx.lineTo(hx, hy);
+        }
+        const [curX, curY] = toCanvas(state.x, state.y);
+        ctx.lineTo(curX, curY);
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        for (let h of state.history) {
+          const [hx, hy] = toCanvas(h.x, h.y);
+          ctx.beginPath();
+          ctx.arc(hx, hy, 3.5, 0, 2 * Math.PI);
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
+          ctx.fill();
+        }
+      }
+
+      // 3x3 Grid Box & Neighbor Points
+      if (state.currentNeighbors && state.currentNeighbors.length > 0) {
+        const step = state.step;
+        const [tlX, tlY] = toCanvas(state.x - step, state.y + step);
+        const [brX, brY] = toCanvas(state.x + step, state.y - step);
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tlX, tlY, brX - tlX, brY - tlY);
+
+        for (let nb of state.currentNeighbors) {
+          if (nb.center) continue;
+          const [nx, ny] = toCanvas(nb.x, nb.y);
+          ctx.beginPath();
+          ctx.arc(nx, ny, 4.5, 0, 2 * Math.PI);
+          ctx.fillStyle = '#10b981';
+          ctx.fill();
+          ctx.strokeStyle = '#064e3b';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      // Highlight Best Candidate
+      if (state.bestNeighbor) {
+        const [bx, by] = toCanvas(state.bestNeighbor.x, state.bestNeighbor.y);
+        ctx.beginPath();
+        ctx.arc(bx, by, 9, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      // Main Center Node
+      const [mcx, mcy] = toCanvas(state.x, state.y);
+      ctx.beginPath();
+      ctx.arc(mcx, mcy, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = '#3b82f6';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function drawAxes() {
+      const [xmin, xmax, ymin, ymax] = functions[currentFnKey].domain;
+      ctx.strokeStyle = 'rgba(100, 116, 139, 0.2)';
+      ctx.lineWidth = 1;
+      
+      for (let x = Math.ceil(xmin); x <= Math.floor(xmax); x++) {
+        const [cx, cy0] = toCanvas(x, ymin);
+        const [, cy1] = toCanvas(x, ymax);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy0);
+        ctx.lineTo(cx, cy1);
+        ctx.stroke();
+      }
+      for (let y = Math.ceil(ymin); y <= Math.floor(ymax); y++) {
+        const [cx0, cy] = toCanvas(xmin, y);
+        const [cx1, ] = toCanvas(xmax, y);
+        ctx.beginPath();
+        ctx.moveTo(cx0, cy);
+        ctx.lineTo(cx1, cy);
+        ctx.stroke();
+      }
+    }
+
+    function updateUI() {
+      document.getElementById('telIter').innerText = state.iter;
+      document.getElementById('telF').innerText = state.f.toFixed(5);
+      document.getElementById('telPos').innerText = `(${state.x.toFixed(2)}, ${state.y.toFixed(2)})`;
+      document.getElementById('telStep').innerText = state.step.toFixed(4);
+      document.getElementById('overlayStep').innerText = state.step.toFixed(4);
+
+      const actionBadge = document.getElementById('telActionBadge');
+      if (state.lastAction === 'expand') {
+        actionBadge.innerText = '▲ EXPAND';
+        actionBadge.className = 'action-badge badge-expand';
+      } else if (state.lastAction === 'shrink') {
+        actionBadge.innerText = '▼ SHRINK';
+        actionBadge.className = 'action-badge badge-shrink';
+      } else {
+        actionBadge.innerText = 'INIT';
+        actionBadge.className = 'action-badge badge-init';
+      }
+
+      document.getElementById('telDelta').innerText = state.deltaF.toFixed(4);
+      const isGreater = state.deltaF > threshold;
+      document.getElementById('telCondition').innerHTML = `Δf (${state.deltaF.toFixed(3)}) ${isGreater ? '>' : '≤'} T (${threshold.toFixed(2)}) → <span style="font-weight:700; color:${isGreater ? '#fcd34d' : '#a5b4fc'}">${isGreater ? 'EXPAND' : 'SHRINK'}</span>`;
+    }
+
+    function toggleAutoPlay() {
+      if (state.running) stopAutoPlay();
+      else startAutoPlay();
+    }
+
+    function startAutoPlay() {
+      state.running = true;
+      document.getElementById('playIcon').innerText = '⏸';
+      document.getElementById('playText').innerText = 'Pause';
+      document.getElementById('statusText').innerText = 'Searching...';
+      
+      const speed = parseInt(document.getElementById('speedSlider').value);
+      state.timer = setInterval(() => {
+        stepIGSO();
+      }, speed);
+    }
+
+    function stopAutoPlay() {
+      state.running = false;
+      document.getElementById('playIcon').innerText = '▶';
+      document.getElementById('playText').innerText = 'Auto Play';
+      if (state.timer) {
+        clearInterval(state.timer);
+        state.timer = null;
+      }
+    }
+
+    // Playback Listeners
+    document.getElementById('stepBtn').addEventListener('click', () => {
+      stopAutoPlay();
+      stepIGSO();
+    });
+
+    document.getElementById('playBtn').addEventListener('click', toggleAutoPlay);
+    document.getElementById('resetBtn').addEventListener('click', resetSearch);
+
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      document.getElementById('speedVal').innerText = e.target.value + 'ms';
+      if (state.running) {
+        stopAutoPlay();
+        startAutoPlay();
+      }
+    });
+
+    // Initial coordinates listeners
+    document.getElementById('startXInput').addEventListener('change', (e) => {
+      startX = parseFloat(e.target.value) || 0;
+      resetSearch();
+    });
+
+    document.getElementById('startYInput').addEventListener('change', (e) => {
+      startY = parseFloat(e.target.value) || 0;
+      resetSearch();
+    });
+
+    // Threshold T Listeners (Slider & Number Box)
+    const tSlider = document.getElementById('tSlider');
+    const tNumberInput = document.getElementById('tNumberInput');
+    const tDisplayVal = document.getElementById('tDisplayVal');
+
+    tSlider.addEventListener('input', (e) => {
+      threshold = parseFloat(e.target.value);
+      tNumberInput.value = threshold.toFixed(2);
+      tDisplayVal.innerText = threshold.toFixed(2);
+      updateUI();
+    });
+
+    tNumberInput.addEventListener('change', (e) => {
+      threshold = Math.max(0.001, parseFloat(e.target.value) || 0.1);
+      tSlider.value = threshold;
+      tDisplayVal.innerText = threshold.toFixed(2);
+      updateUI();
+    });
+
+    // Multipliers
+    document.getElementById('expandInput').addEventListener('change', (e) => {
+      expandMultiplier = Math.max(1.01, parseFloat(e.target.value) || 1.20);
+    });
+
+    document.getElementById('shrinkInput').addEventListener('change', (e) => {
+      shrinkMultiplier = Math.min(0.99, Math.max(0.05, parseFloat(e.target.value) || 0.80));
+    });
+
+    // Step Limits
+    document.getElementById('initStepInput').addEventListener('change', (e) => {
+      initialStep = Math.max(0.01, parseFloat(e.target.value) || 0.50);
+      resetSearch();
+    });
+
+    document.getElementById('minStepInput').addEventListener('change', (e) => {
+      minStep = Math.max(0.0001, parseFloat(e.target.value) || 0.01);
+    });
+
+    document.getElementById('maxStepInput').addEventListener('change', (e) => {
+      maxStep = Math.max(0.1, parseFloat(e.target.value) || 3.0);
+    });
+
+    // Termination
+    document.getElementById('maxIterInput').addEventListener('change', (e) => {
+      maxIterations = parseInt(e.target.value) || 60;
+    });
+
+    document.getElementById('tolInput').addEventListener('change', (e) => {
+      tolerance = parseFloat(e.target.value) || 0.0001;
+    });
+
+    // Reset to Paper Defaults
+    document.getElementById('resetDefaultsBtn').addEventListener('click', () => {
+      startX = DEFAULTS.startX;
+      startY = DEFAULTS.startY;
+      threshold = DEFAULTS.threshold;
+      initialStep = DEFAULTS.initialStep;
+      minStep = DEFAULTS.minStep;
+      maxStep = DEFAULTS.maxStep;
+      expandMultiplier = DEFAULTS.expandMultiplier;
+      shrinkMultiplier = DEFAULTS.shrinkMultiplier;
+      maxIterations = DEFAULTS.maxIterations;
+      tolerance = DEFAULTS.tolerance;
+
+      document.getElementById('startXInput').value = startX.toFixed(1);
+      document.getElementById('startYInput').value = startY.toFixed(1);
+      tSlider.value = threshold;
+      tNumberInput.value = threshold.toFixed(2);
+      tDisplayVal.innerText = threshold.toFixed(2);
+      document.getElementById('expandInput').value = expandMultiplier.toFixed(2);
+      document.getElementById('shrinkInput').value = shrinkMultiplier.toFixed(2);
+      document.getElementById('initStepInput').value = initialStep.toFixed(2);
+      document.getElementById('minStepInput').value = minStep.toFixed(2);
+      document.getElementById('maxStepInput').value = maxStep.toFixed(2);
+      document.getElementById('maxIterInput').value = maxIterations;
+      document.getElementById('tolInput').value = tolerance;
+
+      resetSearch();
+    });
+
+    // Objective Function Switch
+    document.querySelectorAll('.fn-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.fn-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFnKey = btn.dataset.fn;
+        document.getElementById('currentFormula').innerText = functions[currentFnKey].name;
+        renderBackground();
+        resetSearch();
+      });
+    });
+
+    // Canvas click to place start point
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      
+      const [newX, newY] = fromCanvas(cx, cy);
+      startX = Math.max(-0.5, Math.min(6.5, newX));
+      startY = Math.max(-0.5, Math.min(6.5, newY));
+
+      document.getElementById('startXInput').value = startX.toFixed(2);
+      document.getElementById('startYInput').value = startY.toFixed(2);
+
+      resetSearch();
+    });
+
+    renderBackground();
+    resetSearch();
+  </script>
+</body>
+</html>
