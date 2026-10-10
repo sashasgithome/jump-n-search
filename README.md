@@ -56,7 +56,9 @@ IGSO shares concepts with Derivative-Free Optimization (DFO) and pattern search 
 - **Full hypercube neighborhood**: Evaluates both axial and diagonal coordinate combinations simultaneously ($3^d - 1$ points) around the main node.
 - **Drop-sensitive adaptation**: Grid size expands or contracts based on whether the magnitude of improvement $\Delta f$ exceeds threshold $T$, rather than strictly on directional pass/fail.
 
-| Authors | Contribution |
+## Authors
+
+| Author Name | Contribution |
 | :--- | :--- |
 | Sasha Annabel | research, code, prototyping, documentation |
 | Kreshnayogi Dava Berliansyach | research, formulation, code, validation testing |
